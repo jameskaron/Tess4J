@@ -67,14 +67,14 @@ public class OpenCVWorkbench {
 
 	public static int count = 0;
 	public static String tag = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss").format(new Date(System.currentTimeMillis()));
-	public static String testImageFilePath =  "F:\\UUI\\testdata\\16-11-23 TagAndGo\\%s\\%d_%s";
+	public static String testImageFilePath =  "F:\\UUI\\testdata\\16-11-24 TagAndGo\\%s\\%d_%s";
 
 	public static void main(String[] args) {
 
 		System.loadLibrary("opencv_java2413");
 		System.out.println(Core.NATIVE_LIBRARY_NAME);
 		
-		new File("F:\\UUI\\testdata\\16-11-23 TagAndGo\\" + tag).mkdirs();
+		new File("F:\\UUI\\testdata\\16-11-24 TagAndGo\\" + tag).mkdirs();
 //
 		Mat srcImg = Highgui.imread("F:\\UUI\\testdata\\sample.png");
 		System.out.println(String.format(testImageFilePath, tag, count, "testuse-opencv-src.png"));
@@ -821,6 +821,65 @@ public class OpenCVWorkbench {
 		long endTime = System.currentTimeMillis();
 		System.err.println("Use time:" + (endTime- startTime));
 		System.out.println("Total Handle image count:" + count);
+		
+	}
+	
+	public static void tess4jCombineCase(Mat srcMat){
+		
+		long startTime = System.currentTimeMillis();
+
+		//Step 1: Catch all the contours
+		Mat srcImg2 = new Mat();
+		srcMat.copyTo(srcImg2);
+		Mat destImg = new Mat();
+		
+		rGB2GRAY(srcMat, destImg);
+		adaptiveThreshold(destImg, destImg, 25, 10);
+		
+		int iterations = srcMat.width()/1000;
+		
+		if(iterations!=0){
+			erode(destImg, destImg, new Size(3, 3), new Point(1,0) , iterations);
+			dilate(destImg, destImg, new Size(3, 3), new Point(1,0) , iterations);
+		}
+
+		openOperation(destImg, destImg, new Size(3,1) , new Point(1,0), (iterations+1)*3);
+		openOperation(destImg, destImg, new Size(3,1) , new Point(1,0), (iterations+1)*3);
+		
+		double area = srcMat.height() * srcMat.width();
+		System.out.println(area);
+
+		List<MatOfPoint> contours = new ArrayList<>();
+		findContours(destImg, srcImg2, contours);
+		
+		Map<Rect,Mat> possibleMatMap = new HashMap<>();
+		
+		for (MatOfPoint mop : contours) {
+			double contourarea = Imgproc.contourArea(mop);
+			if (contourarea / area   >= 0.002) {
+				System.out.println(contourarea);
+				// System.out.println(mop.cols() + " " + mop.rows());
+//				for (Point p : mop.toArray()) {
+//					System.out.println(p.x + " " + p.y);
+//				}
+				Rect rect = boundingRect(mop);
+			
+				double ratio = (double)rect.height/ (double)rect.width;
+				if(ratio>0.7 || ratio<0.05){
+					continue;
+				}
+				
+				Mat cmat = cutMat(srcMat, rect);
+				Highgui.imwrite(String.format(testImageFilePath, tag, count, "testuse-opencv-cutMat.png"), cmat);
+				count++;
+					
+				possibleMatMap.put(rect, cmat);
+				System.out.println(rect.x + " " + rect.y + "|" + rect.height + " " + rect.width);
+
+			}
+		}
+		
+		//Step 2: Put them into tess4j identify
 		
 	}
 	
