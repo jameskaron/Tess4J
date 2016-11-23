@@ -1,0 +1,5 @@
+1.install opencv in windows
+2.go to install path to /Java/x64/ and get the .jar and .dll
+3.put the .dll to your jdk install path /Java/jdk/bin
+4.modify the properties to link to your tessdata local path
+5.modify the debug file path if needed
