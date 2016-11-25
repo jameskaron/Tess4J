@@ -2,10 +2,10 @@ package com.pccw.tagngo.mode;
 
 public class HKIDCardInfo {
 	
-	private String name;
 	private String seqNo;
-	private String birthDate;
+	private String name;
 	private String hkid;
+	private String birthDate;
 	public String getName() {
 		return name;
 	}

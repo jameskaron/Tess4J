@@ -36,9 +36,9 @@ public class IdNoTesseract implements TesseractOCR{
 		}else{
 			return null;
 		}
-		System.out.println(result);
+//		System.out.println(result);
 		int l = result.length();
-		System.out.println(l);
+//		System.out.println(l);
 		if(l!=0){
 			List<String> list = new ArrayList<String>();
 			for (int i = 0; i < result.length(); i++) {

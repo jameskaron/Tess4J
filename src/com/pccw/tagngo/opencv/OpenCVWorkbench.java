@@ -1,26 +1,17 @@
 package com.pccw.tagngo.opencv;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.Kernel;
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
-import javax.crypto.CipherInputStream;
-
-import org.apache.xmlgraphics.image.loader.pipeline.ImageProviderPipeline;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -33,11 +24,13 @@ import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import com.pccw.tagngo.mode.HKIDCardInfo;
 import com.pccw.tagngo.tess4jocr.AllMatchTesseract;
 import com.pccw.tagngo.tess4jocr.BirthDateTesseract;
 import com.pccw.tagngo.tess4jocr.IdNoTesseract;
 import com.pccw.tagngo.tess4jocr.PingYinNameTesseract;
 import com.pccw.tagngo.tess4jocr.SeqNoTesseract;
+import com.pccw.tagngo.tess4jocr.Tess4jCombineProcess;
 
 import net.sourceforge.tess4j.util.ImageHelper;
 
@@ -67,16 +60,17 @@ public class OpenCVWorkbench {
 
 	public static int count = 0;
 	public static String tag = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss").format(new Date(System.currentTimeMillis()));
-	public static String testImageFilePath =  "F:\\UUI\\testdata\\16-11-24 TagAndGo\\%s\\%d_%s";
+	public static String testImageFilePath =  "E:\\testdata\\16-11-24 TagAndGo\\%s\\%d_%s";
 
 	public static void main(String[] args) {
 
 		System.loadLibrary("opencv_java2413");
 		System.out.println(Core.NATIVE_LIBRARY_NAME);
 		
-		new File("F:\\UUI\\testdata\\16-11-24 TagAndGo\\" + tag).mkdirs();
+		new File("E:\\testdata\\16-11-24 TagAndGo\\" + tag).mkdirs();
 //
-		Mat srcImg = Highgui.imread("F:\\UUI\\testdata\\sample.png");
+//		Mat srcImg0 = Highgui.imread("C:\\Users\\80575749\\Desktop\\TestUse\\test0.png");
+		Mat srcImg = Highgui.imread("C:\\Users\\80575749\\Desktop\\TestUse-Ver2\\IMG_1236.JPG");
 		System.out.println(String.format(testImageFilePath, tag, count, "testuse-opencv-src.png"));
 		Highgui.imwrite(String.format(testImageFilePath, tag, count, "testuse-opencv-src.png"),srcImg);
 		count++;
@@ -101,8 +95,14 @@ public class OpenCVWorkbench {
 //		case6(srcImg);
 //		// blur(srcImg, srcImg2, new Size(7, 7));
 
-		case10(srcImg);
+//		case10(srcImg);
 		
+		
+//		String result = new AllMatchTesseract().ocrWithMat(srcImg0);
+		
+//		System.out.println(result);
+		
+		tess4jCombineCase(srcImg);
 //
 //		// toGray(srcImg, grayImg);
 //		//
@@ -824,11 +824,12 @@ public class OpenCVWorkbench {
 		
 	}
 	
+	
 	public static void tess4jCombineCase(Mat srcMat){
 		
-		long startTime = System.currentTimeMillis();
+//		long startTime = System.currentTimeMillis();
 
-		//Step 1: Catch all the contours
+		//Step 1: Catch out all the contours
 		Mat srcImg2 = new Mat();
 		srcMat.copyTo(srcImg2);
 		Mat destImg = new Mat();
@@ -847,17 +848,19 @@ public class OpenCVWorkbench {
 		openOperation(destImg, destImg, new Size(3,1) , new Point(1,0), (iterations+1)*3);
 		
 		double area = srcMat.height() * srcMat.width();
-		System.out.println(area);
+		System.out.println("area: " +area);
 
 		List<MatOfPoint> contours = new ArrayList<>();
 		findContours(destImg, srcImg2, contours);
 		
-		Map<Rect,Mat> possibleMatMap = new HashMap<>();
+//		Map<Rect,Mat> possibleMatMap = new HashMap<>();
+		
+		List<Mat> matList = new ArrayList<Mat>();
 		
 		for (MatOfPoint mop : contours) {
 			double contourarea = Imgproc.contourArea(mop);
-			if (contourarea / area   >= 0.002) {
-				System.out.println(contourarea);
+			if (contourarea / area   >= 0.001) {
+				System.out.println("contour : " + contourarea);
 				// System.out.println(mop.cols() + " " + mop.rows());
 //				for (Point p : mop.toArray()) {
 //					System.out.println(p.x + " " + p.y);
@@ -870,17 +873,33 @@ public class OpenCVWorkbench {
 				}
 				
 				Mat cmat = cutMat(srcMat, rect);
-				Highgui.imwrite(String.format(testImageFilePath, tag, count, "testuse-opencv-cutMat.png"), cmat);
+				Highgui.imwrite(String.format(testImageFilePath, tag, count, "!testuse-opencv-cutMat.png"), cmat);
 				count++;
 					
-				possibleMatMap.put(rect, cmat);
+//				possibleMatMap.put(rect, cmat);
+				matList.add(cmat);
 				System.out.println(rect.x + " " + rect.y + "|" + rect.height + " " + rect.width);
 
 			}
 		}
 		
-		//Step 2: Put them into tess4j identify
+		//Step 2: Put them into tess4j to identify
+		//1.Sort the contours
+		Collections.sort(matList, new Comparator<Mat>() {
+
+			@Override
+			public int compare(Mat m1, Mat m2) {
+				double area1 = m1.height() * m1.width();
+				double area2 = m2.height() * m2.width();
+				return area1 >= area2 ? -1:1;
+			}
+		});
+		HKIDCardInfo info = new Tess4jCombineProcess().ocrWithMat(matList);
 		
+		System.out.println(info.toString());
+		
+//		long endTime = System.currentTimeMillis();
+//		System.err.println("Use time:" + (endTime- startTime));
 	}
 	
 	public static void case7(Mat srcMat){
@@ -1748,7 +1767,7 @@ public class OpenCVWorkbench {
 		}
 
 		Highgui.imwrite(
-				"D:\\project desktop\\16-11-11 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
+				"E:\\testdata\\16-11-24 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
 				drawM);
 		count++;
 	}
@@ -1769,7 +1788,7 @@ public class OpenCVWorkbench {
 		}
 
 		Highgui.imwrite(
-				"D:\\project desktop\\16-11-11 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
+				"E:\\testdata\\16-11-24 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
 				drawM);
 		count++;
 	}
@@ -1791,7 +1810,7 @@ public class OpenCVWorkbench {
 		}
 
 		Highgui.imwrite(
-				"D:\\project desktop\\16-11-11 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
+				"E:\\testdata\\16-11-24 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
 				drawM);
 		count++;
 	}
@@ -1813,7 +1832,7 @@ public class OpenCVWorkbench {
 		}
 
 		Highgui.imwrite(
-				"D:\\project desktop\\16-11-11 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
+				"E:\\testdata\\16-11-24 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
 				drawM);
 		count++;
 	}
@@ -1838,7 +1857,7 @@ public class OpenCVWorkbench {
 		}
 
 		Highgui.imwrite(
-				"D:\\project desktop\\16-11-11 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
+				"E:\\testdata\\16-11-24 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-drawCountours.png",
 				drawM);
 		count++;
 	}
@@ -1899,7 +1918,7 @@ public class OpenCVWorkbench {
     public static void reSize(Mat srcMat, Mat destMat, Size ksize){
     	Imgproc.resize(srcMat, destMat, ksize);
 		Highgui.imwrite(
-				"D:\\project desktop\\16-11-11 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-resize.png",
+				"E:\\testdata\\16-11-24 TagAndGo\\" + tag + "\\" + count + "testuse-opencv-resize.png",
 				destMat);
 		count++;
     }
