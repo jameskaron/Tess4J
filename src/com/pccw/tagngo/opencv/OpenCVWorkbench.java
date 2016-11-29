@@ -21,6 +21,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.core.TermCriteria;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
@@ -60,14 +61,14 @@ public class OpenCVWorkbench {
 
 	public static int count = 0;
 	public static String tag = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss").format(new Date(System.currentTimeMillis()));
-	public static String testImageFilePath =  "E:\\testdata\\16-11-24 TagAndGo\\%s\\%d_%s";
+	public static String testImageFilePath =  "E:\\testdata\\16-11-25 TagAndGo\\%s\\%d_%s";
 
 	public static void main(String[] args) {
 
 		System.loadLibrary("opencv_java2413");
 		System.out.println(Core.NATIVE_LIBRARY_NAME);
 		
-		new File("E:\\testdata\\16-11-24 TagAndGo\\" + tag).mkdirs();
+		new File("E:\\testdata\\16-11-25 TagAndGo\\" + tag).mkdirs();
 //
 //		Mat srcImg0 = Highgui.imread("C:\\Users\\80575749\\Desktop\\TestUse\\test0.png");
 		Mat srcImg = Highgui.imread("C:\\Users\\80575749\\Desktop\\TestUse-Ver2\\IMG_1236.JPG");
@@ -1532,6 +1533,21 @@ public class OpenCVWorkbench {
 
 	}
 
+	public static void case12(Mat srcMat){
+		
+		final int MAX_COUNT = 500;
+		
+		Mat gray = new Mat();
+		rGB2GRAY(srcMat, gray);
+		
+		MatOfPoint mMOP = new MatOfPoint();
+//		MatOfPoint2f points = new MatOfPoint2f(mMOP.toArray());
+		
+		goodFeaturesToTrack(gray, mMOP, MAX_COUNT, 0.01, 10, new Mat(), 3, false, 0.04);
+		
+		
+	}
+	
 	public static void warpAffine(Mat srcMat, Mat destMat, double angle, double scale){
 		
 		Mat rotateMat = Imgproc.getRotationMatrix2D(new Point(srcMat.width()/2, srcMat.height()/2), angle, scale);
@@ -1968,4 +1984,13 @@ public class OpenCVWorkbench {
 		return ImageHelper.ostu(gray, w, h);
 	}
 
+	public static void 	goodFeaturesToTrack(Mat image, MatOfPoint corners, int maxCorners, double qualityLevel, 
+			double minDistance, Mat mask, int blockSize, boolean useHarrisDetector, double k){
+		Imgproc.goodFeaturesToTrack(image, corners, maxCorners, qualityLevel, minDistance, mask, blockSize, useHarrisDetector, k);
+	}
+	
+	public static void cornerSubPix(Mat image, MatOfPoint2f corners, Size winSize, Size zeroZone, TermCriteria criteria){
+		Imgproc.cornerSubPix(image, corners, winSize, zeroZone, criteria);
+	}
+	
 }
